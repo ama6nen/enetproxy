@@ -124,14 +124,8 @@ void handle_outgoing() {
                             send_log("flag set to item id: " + std::to_string(flag));
                             enet_packet_destroy(evt.packet);
                             return;
-                        } else if (packet.find("|text|/resolve ") != -1) {
-                            std::string uid = packet.substr(packet.find("/resolve ") + 9);
-                            send_log("resolving uid " + uid);
-                            resolve_uid_to_name(uid);
-                            enet_packet_destroy(evt.packet);
-                            return;
-                        } else if (packet.find("|text|/uid ") != -1) {
-                            std::string name = packet.substr(packet.find("/uid ") + 5);
+                        } else if (packet.find("|text|/track ") != -1) {
+                            std::string name = packet.substr(packet.find("/track ") + 7);
                             send_log("resolving uid for " + name);
                             resolve_name_to_uid(name);
                             enet_packet_destroy(evt.packet);
@@ -342,6 +336,7 @@ void handle_incoming() {
                                                     packet =
                                                         "action|dialog_return\ndialog_name|friends_remove\n" + std::string("friendID|") + uid + "|\nbuttonClicked|remove";
                                                     utils::send(m_server_peer, m_real_server, NET_MESSAGE_GENERIC_TEXT, (uint8_t*)packet.c_str(), packet.length());
+                                                    resolve_uid_to_name(uid); // does both processes at the same time :D
                                                 }
 
                                                 enet_packet_destroy(event.packet);
