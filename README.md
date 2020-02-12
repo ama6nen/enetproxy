@@ -32,7 +32,7 @@
 
 ## Changelog
 # 1.4.1
-* Add solve captcha automatically
+* Add solve captcha automatically (by SAMOHACKS)
 
 # 1.4
 * Add /proxy - shows proxy commands
