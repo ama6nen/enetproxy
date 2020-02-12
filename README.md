@@ -27,11 +27,13 @@
 
 ## TODO
 * Support more gamepacket types
-* Automatically solve captcha
 * More commands
 * send set state to change gravity, speed, other things
 
 ## Changelog
+# 1.4.1
+* Add solve captcha automatically
+
 # 1.4
 * Add /proxy - shows proxy commands
 * Add /tp player - teleports to a player in the world
