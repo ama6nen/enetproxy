@@ -72,14 +72,16 @@ bool events::out::generictext(std::string packet) {
             return true;
         } else if (find_command(chat, "bluename")) {
             gt::maxname = !gt::maxname; 
-            if (gt::maxname)
+            if (gt::maxname) {
                 gt::send_log("you name are max level.");
                 va[1] = "../flags/"+gt::flag+"|showGuild|maxLevel";
                 g_server->send(true, va, world.local.netid, -1);
-            else
-                gt::send_log("you name are normally.");
+            }
+            else {
+                gt::send_log("you name are become normally.");
                 va[1] = "../flags/"+gt::flag+"|showGuild";
                 g_server->send(true, va, world.local.netid, -1);
+            }
             return true;
         } else if (find_command(chat, "ghost")) {
             gt::ghost = !gt::ghost;
