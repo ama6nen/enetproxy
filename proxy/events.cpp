@@ -57,7 +57,7 @@ bool events::out::generictext(std::string packet) {
             return true;
         } else if (find_command(chat, "bluename")) { 
             variantlist_t itsdoesntmatter{ "OnCountryState" };
-            itsdoesntmatter[1] = "|showGuild|maxLevel";
+            itsdoesntmatter[1] = "../flags/" + gt::flag + "|showGuild|maxLevel";
             g_server->send(true, itsdoesntmatter, world.local.netid, -1);
             gt::send_log("Blue name added");
             return true;
