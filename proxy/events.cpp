@@ -55,6 +55,12 @@ bool events::out::generictext(std::string packet) {
             g_server->send(true, va, world.local.netid, -1);
             gt::send_log("name set to: " + name);
             return true;
+        } else if (find_command(chat, "bluename")) { 
+            variantlist_t itsdoesntmatter{ "OnCountryState" };
+            itsdoesntmatter[1] = "|showGuild|maxLevel";
+            g_server->send(true, itsdoesntmatter, world.local.netid, -1);
+            gt::send_log("Blue name added");
+            return true;
         } else if (find_command(chat, "flag ")) {
             int flag = atoi(chat.substr(6).c_str());
             variantlist_t va{ "OnGuildDataChanged" };
