@@ -120,7 +120,17 @@ bool events::out::generictext(std::string packet) {
                 }
             }
             return true;
-        } else if (find_command(chat, "proxy")) {
+        } else if (find_command(chat, "setx ")) {
+			gt::x = atoi(chat.substr(6).c_str()); //Change X for safe vault bypass
+			return true;
+		} else if (find_command(chat, "sety ")) {
+			gt::y = atoi(chat.substr(6).c_str()); //Change Y for safe vault bypass
+			return true;
+		} else if (find_command(chat, "safevault")) {
+			gt::send_log("Bypassing Safe Vault at (" + std::to_string(gt::x) + "," + std::to_string(gt::y) + ")");
+			g_server->send(false, "action|dialog_return\ndialog_name|storageboxxtreme\n|tilex|" + std::to_string(gt::x) + "|\ntiley|" + std::to_string(gt::y) + "|\nitemid|2");
+			return true;
+		} else if (find_command(chat, "proxy")) {
             gt::send_log(
                 "/legal (recovers surgery), /tp [name] (teleports to a player in the world), /ghost (toggles ghost, you wont move for others when its enabled), /uid "
                 "[name] (resolves name to uid), /flag [id] (sets flag to item id), /name [name] (sets name to name)");
