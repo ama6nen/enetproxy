@@ -9,6 +9,8 @@ namespace gt {
     extern bool in_game;
     extern bool ghost;
     extern bool aapbypass;
+    extern int svx;
+    extern int svy;
     void send_log(std::string text);
     void solve_captcha(std::string text);
 }
