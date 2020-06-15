@@ -23,10 +23,10 @@ int main() {
     enet_initialize();
     if (g_server->start()) {
         printf("Server & client proxy is running.\n");
-        while (true) {
+        
+        while (true) 
             g_server->poll();
-            Sleep(1);
-        }
+        
     }   
     else
         printf("Failed to start server or proxy.\n");
