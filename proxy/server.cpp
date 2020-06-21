@@ -202,8 +202,6 @@ bool server::start() {
 
 void server::quit() {
     gt::in_game = false;
-    enet_host_destroy(m_real_server);
-    m_real_server = nullptr;
     this->disconnect(true);
 }
 
