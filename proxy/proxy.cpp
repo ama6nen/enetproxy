@@ -23,7 +23,7 @@ int main() {
     enet_initialize();
     if (g_server->start()) {
         printf("Server & client proxy is running.\n");
-        
+
         while (true) 
             g_server->poll();
         

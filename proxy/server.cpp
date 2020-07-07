@@ -1,187 +1,233 @@
 #pragma once
 #include "server.h"
 #include <iostream>
+#include <thread>
 #include "events.h"
 #include "gt.hpp"
 #include "proton/hash.hpp"
 #include "proton/rtparam.hpp"
 #include "utils.h"
+#include <mutex>
+
+std::mutex enet_mut;
+std::mutex host_mut;
 
 void server::handle_outgoing() {
+    if (!m_proxy_server) {
+        return;
+    }
+
     ENetEvent evt;
-    while (enet_host_service(m_proxy_server, &evt, 10) > 0) {
+    while (enet_host_service(m_proxy_server, &evt, 100) > 0) {
         m_gt_peer = evt.peer;
 
         switch (evt.type) {
-            case ENET_EVENT_TYPE_CONNECT: {
-                if (!this->connect())
-                    return;
-            } break;
-            case ENET_EVENT_TYPE_RECEIVE: {
-                int packet_type = get_packet_type(evt.packet);
-                switch (packet_type) {
-                    case NET_MESSAGE_GENERIC_TEXT:
-                        if (events::out::generictext(utils::get_text(evt.packet))) {
-                            enet_packet_destroy(evt.packet);
-                            return;
-                        }
-                        break;
-                    case NET_MESSAGE_GAME_MESSAGE:
-                        if (events::out::gamemessage(utils::get_text(evt.packet))) {
-                            enet_packet_destroy(evt.packet);
-                            return;
-                        }
-                        break;
-                    case NET_MESSAGE_GAME_PACKET: {
-                        auto packet = utils::get_struct(evt.packet);
-                        if (!packet)
-                            break;
-
-                        switch (packet->m_type) {
-                            case PACKET_STATE:
-                                if (events::out::state(packet)) {
-                                    enet_packet_destroy(evt.packet);
-                                    return;
-                                }
-                                break;
-                            case PACKET_CALL_FUNCTION:
-                                if (events::out::variantlist(packet)) {
-                                    enet_packet_destroy(evt.packet);
-                                    return;
-                                }
-                                break;
-
-                            case PACKET_PING_REPLY:
-                                if (events::out::pingreply(packet)) {
-                                    enet_packet_destroy(evt.packet);
-                                    return;
-                                }
-                                break;
-                            case PACKET_DISCONNECT:
-                            case PACKET_APP_INTEGRITY_FAIL:
-                                if (gt::in_game)
-                                    return;
-                                break;
-
-                            default: PRINTS("gamepacket type: %d\n", packet->m_type);
-                        }
-                    } break;
-                    case NET_MESSAGE_TRACK: //track one should never be used, but its not bad to have it in case.
-                    case NET_MESSAGE_CLIENT_LOG_RESPONSE: return;
-
-                    default: PRINTS("Got unknown packet of type %d.\n", packet_type); break;
-                }
-
-                if (!m_server_peer || !m_real_server)
-                    return;
-                enet_peer_send(m_server_peer, 0, evt.packet);
-                enet_host_flush(m_real_server);
-            } break;
-            case ENET_EVENT_TYPE_DISCONNECT: {
-                if (gt::in_game)
-                    return;
-                if (gt::connecting) {
-                    this->disconnect(false);
-                    gt::connecting = false;
+        case ENET_EVENT_TYPE_CONNECT: {
+            if (!this->connect())
+                return;
+        } break;
+        case ENET_EVENT_TYPE_RECEIVE: {
+            int packet_type = get_packet_type(evt.packet);
+            switch (packet_type) {
+            case NET_MESSAGE_GENERIC_TEXT:
+                if (events::out::generictext(utils::get_text(evt.packet))) {
+                    enet_packet_destroy(evt.packet);
                     return;
                 }
+                break;
+            case NET_MESSAGE_GAME_MESSAGE:
+                if (events::out::gamemessage(utils::get_text(evt.packet))) {
+                    enet_packet_destroy(evt.packet);
+                    return;
+                }
+                break;
+            case NET_MESSAGE_GAME_PACKET: {
+                auto packet = utils::get_struct(evt.packet);
+                if (!packet)
+                    break;
 
+                switch (packet->m_type) {
+                case PACKET_STATE:
+                    if (events::out::state(packet)) {
+                        enet_packet_destroy(evt.packet);
+                        return;
+                    }
+                    break;
+                case PACKET_CALL_FUNCTION:
+                    if (events::out::variantlist(packet)) {
+                        enet_packet_destroy(evt.packet);
+                        return;
+                    }
+                    break;
+
+                case PACKET_PING_REPLY:
+                    if (events::out::pingreply(packet)) {
+                        enet_packet_destroy(evt.packet);
+                        return;
+                    }
+                    break;
+                case PACKET_DISCONNECT:
+                case PACKET_APP_INTEGRITY_FAIL:
+                    if (gt::in_game)
+                        return;
+                    break;
+
+                default: PRINTS("gamepacket type: %d\n", packet->m_type);
+                }
             } break;
-            default: PRINTS("UNHANDLED\n"); break;
+            case NET_MESSAGE_TRACK: //track one should never be used, but its not bad to have it in case.
+            case NET_MESSAGE_CLIENT_LOG_RESPONSE: return;
+
+            default: PRINTS("Got unknown packet of type %d.\n", packet_type); break;
+            }
+
+            if (!m_server_peer || !m_real_server)
+                return;
+            enet_peer_send_safe(m_server_peer, 0, evt.packet);
+           
+        } break;
+        case ENET_EVENT_TYPE_DISCONNECT: {
+            if (gt::in_game)
+                return;
+            if (gt::connecting) {
+                this->disconnect(false);
+                gt::connecting = false;
+                return;
+            }
+
+        } break;
+        default: PRINTS("UNHANDLED\n"); break;
         }
     }
 }
 
+void server::handle_outgoing_incoming_safe(bool incoming)
+{
+    //host_mut.lock();
+    if (incoming)
+        handle_incoming();
+    else
+        handle_outgoing();
+    //host_mut.unlock();
+}
+
+void server::doPacketQueue()
+{
+    while (true) {
+        Sleep(30);
+        enet_mut.lock();
+        for (int i = 0; i < this->ENetPacketQueue.size(); i++)
+        {
+            ENetPacket* packet = ENetPacketQueue[i].e_Packet;
+            ENetPeer* peer = ENetPacketQueue[i].peerReceiver;
+            if (peer->host && peer) {
+                if (peer->state == ENET_PEER_STATE_CONNECTED)
+                    enet_peer_send(peer, 0, packet); // Dont flush wait for next service call
+            }
+        }
+        this->ENetPacketQueue.clear();
+        enet_mut.unlock();
+    }
+}
+
+void server::doHandleOutgoingForServiceThread()
+{
+    while (true)
+        handle_outgoing_incoming_safe(false);
+}
+
 void server::handle_incoming() {
+    if (!m_real_server) 
+        return;
+
     ENetEvent event;
 
-    while (enet_host_service(m_real_server, &event, 10) > 0) {
+    while (enet_host_service(m_real_server, &event, 100) > 0) {
         switch (event.type) {
-            case ENET_EVENT_TYPE_CONNECT: PRINTC("connection event\n"); break;
-            case ENET_EVENT_TYPE_DISCONNECT: this->disconnect(true); return;
-            case ENET_EVENT_TYPE_RECEIVE: {
-                if (event.packet->data) {
-                    int packet_type = get_packet_type(event.packet);
-                    switch (packet_type) {
-                        case NET_MESSAGE_GENERIC_TEXT:
-                            if (events::in::generictext(utils::get_text(event.packet))) {
-                                enet_packet_destroy(event.packet);
-                                return;
-                            }
-                            break;
-                        case NET_MESSAGE_GAME_MESSAGE:
-                            if (events::in::gamemessage(utils::get_text(event.packet))) {
-                                enet_packet_destroy(event.packet);
-                                return;
-                            }
-                            break;
-                        case NET_MESSAGE_GAME_PACKET: {
-                            auto packet = utils::get_struct(event.packet);
-                            if (!packet)
-                                break;
-
-                            switch (packet->m_type) {
-                                case PACKET_CALL_FUNCTION:
-                                    if (events::in::variantlist(packet)) {
-                                        enet_packet_destroy(event.packet);
-                                        return;
-                                    }
-                                    break;
-
-                                case PACKET_SEND_MAP_DATA:
-                                    if (events::in::sendmapdata(packet)) {
-                                        enet_packet_destroy(event.packet);
-                                        return;
-                                    }
-                                    break;
-
-                                case PACKET_STATE:
-                                    if (events::in::state(packet)) {
-                                        enet_packet_destroy(event.packet);
-                                        return;
-                                    }
-                                    break;
-                                //no need to print this for handled packet types such as func call, because we know its 1
-                                default: PRINTC("gamepacket type: %d\n", packet->m_type); break;
-                            }
-                        } break;
-
-                        //ignore tracking packet, and request of client crash log
-                        case NET_MESSAGE_TRACK:
-                            if (events::in::tracking(utils::get_text(event.packet))) {
-                                enet_packet_destroy(event.packet);
-                                return;
-                            }
-                            break;
-                        case NET_MESSAGE_CLIENT_LOG_REQUEST: return;
-
-                        default: PRINTS("Got unknown packet of type %d.\n", packet_type); break;
+        case ENET_EVENT_TYPE_CONNECT: PRINTC("connection event\n"); break;
+        case ENET_EVENT_TYPE_DISCONNECT: this->disconnect(true); return;
+        case ENET_EVENT_TYPE_RECEIVE: {
+            if (event.packet->data) {
+                int packet_type = get_packet_type(event.packet);
+                switch (packet_type) {
+                case NET_MESSAGE_GENERIC_TEXT:
+                    if (events::in::generictext(utils::get_text(event.packet))) {
+                        enet_packet_destroy(event.packet);
+                        return;
                     }
+                    break;
+                case NET_MESSAGE_GAME_MESSAGE:
+                    if (events::in::gamemessage(utils::get_text(event.packet))) {
+                        enet_packet_destroy(event.packet);
+                        return;
+                    }
+                    break;
+                case NET_MESSAGE_GAME_PACKET: {
+                    auto packet = utils::get_struct(event.packet);
+                    if (!packet)
+                        break;
+
+                    switch (packet->m_type) {
+                    case PACKET_CALL_FUNCTION:
+                        if (events::in::variantlist(packet)) {
+                            enet_packet_destroy(event.packet);
+                            return;
+                        }
+                        break;
+
+                    case PACKET_SEND_MAP_DATA:
+                        if (events::in::sendmapdata(packet)) {
+                            enet_packet_destroy(event.packet);
+                            return;
+                        }
+                        break;
+
+                    case PACKET_STATE:
+                        if (events::in::state(packet)) {
+                            enet_packet_destroy(event.packet);
+                            return;
+                        }
+                        break;
+                        //no need to print this for handled packet types such as func call, because we know its 1
+                    default: PRINTC("gamepacket type: %d\n", packet->m_type); break;
+                    }
+                } break;
+
+                    //ignore tracking packet, and request of client crash log
+                case NET_MESSAGE_TRACK:
+                    if (events::in::tracking(utils::get_text(event.packet))) {
+                        enet_packet_destroy(event.packet);
+                        return;
+                    }
+                    break;
+                case NET_MESSAGE_CLIENT_LOG_REQUEST: return;
+
+                default: PRINTS("Got unknown packet of type %d.\n", packet_type); break;
                 }
+            }
 
-                if (!m_gt_peer || !m_proxy_server)
-                    return;
-                enet_peer_send(m_gt_peer, 0, event.packet);
-                enet_host_flush(m_proxy_server);
+            if (!m_gt_peer || !m_proxy_server)
+                return;
+            enet_peer_send_safe(m_gt_peer, 0, event.packet);
 
-            } break;
+        } break;
 
-            default: PRINTC("UNKNOWN event: %d\n", event.type); break;
+        default: PRINTC("UNKNOWN event: %d\n", event.type); break;
         }
     }
 }
 
 void server::poll() {
     //outgoing packets going to real server that are intercepted by our proxy server
-    this->handle_outgoing();
+    // server thread now in this->start()
 
     if (!m_real_server)
         return;
 
     //ingoing packets coming to gt client intercepted by our proxy client
-    this->handle_incoming();
+    this->handle_outgoing_incoming_safe(true);
+    
 }
-
 bool server::start() {
     ENetAddress address;
     enet_address_set_host(&address, "0.0.0.0");
@@ -196,7 +242,20 @@ bool server::start() {
     auto code = enet_host_compress_with_range_coder(m_proxy_server);
     if (code != 0)
         PRINTS("enet host compressing failed\n");
-    PRINTS("started the enet server.\n");
+
+    // force run anyway, altho it probably will result into not working as compression isnt there anymore which gt wants
+    std::thread server_thread([this] { doHandleOutgoingForServiceThread(); });
+    if (server_thread.joinable())
+    {
+        server_thread.detach();
+        PRINTS("started the enet server.\n");
+    }
+    this->m_started_server_service_thread = true;
+    
+    std::thread packet_thread([this] {doPacketQueue(); });
+    if (packet_thread.joinable())
+        packet_thread.detach();
+
     return setup_client();
 }
 
@@ -246,6 +305,7 @@ void server::disconnect(bool reset) {
     m_world.connected = false;
     m_world.local = {};
     m_world.players.clear();
+    ENetPacketQueue.clear();
     if (m_server_peer) {
         enet_peer_disconnect(m_server_peer, 0);
         m_server_peer = nullptr;
@@ -253,8 +313,8 @@ void server::disconnect(bool reset) {
     if (reset) {
         m_user = 0;
         m_token = 0;
-        m_server = "209.59.191.76";
-        m_port = 17093;
+        m_server = "213.179.209.168";
+        m_port = 17273;
     }
 }
 
@@ -290,10 +350,7 @@ void server::send(bool client, int32_t type, uint8_t* data, int32_t len) {
         memcpy(&game_packet->m_data, data, len);
 
     memset(&game_packet->m_data + len, 0, 1);
-    int code = enet_peer_send(peer, 0, packet);
-    if (code != 0)
-        PRINTS("Error sending packet! code: %d\n", code);
-    enet_host_flush(host);
+    enet_peer_send_safe(peer, 0, packet);
 }
 
 //bool client: true - sends to growtopia client    false - sends to gt server
@@ -329,8 +386,7 @@ void server::send(bool client, variantlist_t& list, int32_t netid, int32_t delay
     free(data);
 
     auto packet = enet_packet_create(game_packet, data_size + sizeof(gameupdatepacket_t), ENET_PACKET_FLAG_RELIABLE);
-    enet_peer_send(peer, 0, packet);
-    enet_host_flush(host);
+    enet_peer_send_safe(peer, 0, packet);
     free(game_packet);
 }
 
@@ -347,8 +403,17 @@ void server::send(bool client, std::string text, int32_t type) {
     memcpy(&game_packet->m_data, text.c_str(), text.length());
 
     memset(&game_packet->m_data + text.length(), 0, 1);
-    int code = enet_peer_send(peer, 0, packet);
-    if (code != 0)
-        PRINTS("Error sending packet! code: %d\n", code);
-    enet_host_flush(host);
+    enet_peer_send_safe(peer, 0, packet);
+}
+
+void server::enet_peer_send_safe(ENetPeer* peer, 
+    enet_uint8 channel, 
+    ENetPacket* packet) // host to flush which i think you should do instantly cuz when the packet queues you also dont want it to be sent at the same time
+{
+    enet_mut.lock();
+    ENetPacketQueueStruct epqs;
+    epqs.e_Packet = packet;
+    epqs.peerReceiver = peer;
+    ENetPacketQueue.push_back(epqs);
+    enet_mut.unlock();
 }
