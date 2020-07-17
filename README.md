@@ -1,3 +1,27 @@
+### Added Things By Me (@TheArmagan)
+
+The things added by me (@TheArmagan)
+
+/phelp - The command for show information about proxy commands.
+
+## Teleportation Commands 
+> These commands added by me.
+- /tpp <player_name> - Teleports you to player.
+- /tpy <amount> - Changes your relative y position.
+- /tpx <amount> - Changes your relative x position.
+- /tp <amount> <amount> - Changes your relative x and y position.
+
+
+## Other Commands
+- /name <name> - Changes your local name.
+- /skin <number> - Changes your local skin color.
+- /legal - Really I have no idea what is does.
+
+
+---
+### Original ReadMe.md
+
+
 # Growtopia enet proxy
 
 # NOTE: This is not an internal cheat. Proxy is not an internal cheat in any way or form.
