@@ -24,6 +24,9 @@ bool events::out::pingreply(gameupdatepacket_t* packet) {
     return false;
 }
 
+
+
+
 bool find_command(std::string chat, std::string name) {
     bool found = chat.find("/" + name) == 0;
     if (found)
@@ -49,7 +52,7 @@ bool events::out::generictext(std::string packet) {
         auto chat = var.get(1).m_values[1];
 
         if (find_command(chat, "name ")) { //ghetto solution, but too lazy to make a framework for commands.
-            std::string name = "``" + chat.substr(6) + "``";
+            std::string name = "`2" + chat.substr(6);
             variantlist_t va{ "OnNameChanged" };
             va[1] = name;
             g_server->send(true, va, world.local.netid, -1);
@@ -84,8 +87,8 @@ bool events::out::generictext(std::string packet) {
             g_server->send(false, "action|friends");
             gt::resolving_uid2 = true;
             return true;
-        } else if (find_command(chat, "tp ")) {
-            std::string name = chat.substr(4);
+        } else if (find_command(chat, "tpp ")) {
+            std::string name = chat.substr(5);
             std::transform(name.begin(), name.end(), name.begin(), ::tolower);
             for (auto& player : g_server->m_world.players) {
                 auto name_2 = player.name.substr(2); //remove color
@@ -94,12 +97,114 @@ bool events::out::generictext(std::string packet) {
                     gt::send_log("Teleporting to " + player.name);
                     variantlist_t varlist{ "OnSetPos" };
                     varlist[1] = player.pos;
+                    gt::send_log("My player pos: x: " + std::to_string(g_server->m_world.local.pos.m_x) + ", y:" + std::to_string(g_server->m_world.local.pos.m_y));
                     g_server->m_world.local.pos = player.pos;
+                    gt::send_log("Other player pos: x: " + std::to_string(player.pos.m_x) + ", y:" + std::to_string(player.pos.m_y));
                     g_server->send(true, varlist, g_server->m_world.local.netid, -1);
                     break;
                 }
             }
             return true;
+        } else if (find_command(chat, "getpos")) {
+            gt::send_log("> Your location:");
+            gt::send_log("> X: " + std::to_string(g_server->m_world.local.pos.m_x));
+            gt::send_log("> Y: " + std::to_string(g_server->m_world.local.pos.m_y));
+            return true;
+        } else if (find_command(chat, "tpy ")) {
+            // y yukar� do�ru azal�yor
+            // 1 blok boyu 32
+
+            std::string amountString = chat.substr(5);
+            gt::send_log(amountString);
+
+            if (!utils::hasEnding(amountString, ".0")) {
+                amountString = amountString + ".0";
+            }
+
+            float yAmountParsed = ::atof(amountString.c_str());
+
+            float newYLocation = g_server->m_world.local.pos.m_y - (yAmountParsed * 32.0f);
+
+            if (newYLocation < 2.0f || newYLocation > 1698.0f) {
+                gt::send_log("> You can't get out of the world.");
+                return true;
+            }
+
+            variantlist_t varlist{ "OnSetPos" };
+            vector2_t newpos = vector2_t{ g_server->m_world.local.pos.m_x, newYLocation };
+            g_server->m_world.local.pos = newpos;
+            varlist[1] = newpos;
+            g_server->send(true, varlist, g_server->m_world.local.netid, -1);
+            return true;
+
+        } else if (find_command(chat, "tpx ")) {
+            // y yukar� do�ru azal�yor
+            // 1 blok boyu 32px
+
+            std::string amountString = chat.substr(5);
+            gt::send_log(amountString);
+
+            if (!utils::hasEnding(amountString, ".0")) {
+                amountString = amountString + ".0";
+            }
+
+            float xAmountParsed = ::atof(amountString.c_str());
+
+            float newXLocation = g_server->m_world.local.pos.m_x + (xAmountParsed * 32.0f);
+
+            if (newXLocation < 2.0f || newXLocation > 3180.0f) {
+                gt::send_log("> You can't get out of the world.");
+                return true;
+            }
+
+            variantlist_t varlist{ "OnSetPos" };
+            vector2_t newpos = vector2_t{ newXLocation, g_server->m_world.local.pos.m_y };
+            g_server->m_world.local.pos = newpos;
+            varlist[1] = newpos;
+            g_server->send(true, varlist, g_server->m_world.local.netid, -1);
+            return true;
+
+        } else if (find_command(chat, "tp ")) {
+            // y yukar� do�ru azal�yor
+            // 1 blok boyu 32px
+
+            std::vector<std::string> amountStrings = utils::splitString(chat.substr(4), " ");
+
+            int amountStringsSize = amountStrings.size();
+
+            if (amountStringsSize != 2) {
+                gt::send_log("> Incorrect usage!");
+                gt::send_log("> Correct usage: /tp 2 2");
+                return true;
+            }
+
+            if (!utils::hasEnding(amountStrings[0], ".0")) {
+                amountStrings[0] = amountStrings[0] + ".0";
+            }
+
+            if (!utils::hasEnding(amountStrings[1], ".0")) {
+                amountStrings[1] = amountStrings[1] + ".0";
+            }
+
+            float xAmountParsed = ::atof(amountStrings[0].c_str());
+            float yAmountParsed = ::atof(amountStrings[1].c_str());
+
+            float newYLocation = g_server->m_world.local.pos.m_y - (yAmountParsed * 32.0f);
+            float newXLocation = g_server->m_world.local.pos.m_x + (xAmountParsed * 32.0f);
+
+
+            if (newYLocation < 2.0f || newYLocation > 1698.0f || newXLocation < 2.0f || newXLocation > 3180.0f) {
+                gt::send_log("> You can't get out of the world.");
+                return true;
+            }
+
+            variantlist_t varlist{ "OnSetPos" };
+            vector2_t newpos = vector2_t{ newXLocation, newYLocation };
+            g_server->m_world.local.pos = newpos;
+            varlist[1] = newpos;
+            g_server->send(true, varlist, g_server->m_world.local.netid, -1);
+            return true;
+
         } else if (find_command(chat, "skin ")) {
             int skin = atoi(chat.substr(6).c_str());
             variantlist_t va{ "OnChangeSkin" };
@@ -126,10 +231,14 @@ bool events::out::generictext(std::string packet) {
                 }
             }
             return true;
-        } else if (find_command(chat, "proxy")) {
-            gt::send_log(
-                "/legal (recovers surgery), /tp [name] (teleports to a player in the world), /ghost (toggles ghost, you wont move for others when its enabled), /uid "
-                "[name] (resolves name to uid), /flag [id] (sets flag to item id), /name [name] (sets name to name)");
+        } else if (find_command(chat, "phelp")) {
+            gt::send_log("> /name <name> - Changes your local name.");
+            gt::send_log("> /skin <number> - Changes your local skin color.");
+            gt::send_log("> /tpp <player_name> - Teleports you to player.");
+            gt::send_log("> /tpy <amount> - Changes your relative y position.");
+            gt::send_log("> /tpx <amount> - Changes your relative x position.");
+            gt::send_log("> /tp <amount> <amount> - Changes your relative x and y position.");
+            gt::send_log("> /legal");
             return true;
         } else if (find_command(chat, "legal")) {
             gt::send_log("using legal briefs");
@@ -198,7 +307,7 @@ bool events::out::state(gameupdatepacket_t* packet) {
         return false;
 
     g_server->m_world.local.pos = vector2_t{ packet->m_vec_x, packet->m_vec_y };
-    PRINTS("local pos: %.0f %.0f\n", packet->m_vec_x, packet->m_vec_y);
+    PRINTS("LOCATION: LOCAL => X: %.0f, Y: %.0f\n", packet->m_vec_x, packet->m_vec_y);
 
     if (gt::ghost)
         return true;
@@ -234,10 +343,11 @@ bool events::in::variantlist(gameupdatepacket_t* packet) {
         case fnv32("OnSendToServer"): g_server->redirect_server(varlist); return true;
 
         case fnv32("OnConsoleMessage"): {
-            varlist[1] = "`4[PROXY]`` " + varlist[1].get_string();
+            varlist[1] = "`4[P]`` " + varlist[1].get_string();
             g_server->send(true, varlist);
             return true;
         } break;
+
         case fnv32("OnDialogRequest"): {
             auto content = varlist[1].get_string();
 
@@ -301,7 +411,7 @@ bool events::in::variantlist(gameupdatepacket_t* packet) {
                 if (var.find("invis")->m_value != "1") {
                     ply.name = name->m_value;
                     ply.country = var.get("country");
-                    name->m_values[0] += " `4[" + netid->m_value + "]``";
+                    name->m_values[0] += " `4" + netid->m_value + "``";
                     auto pos = var.find("posXY");
                     if (pos && pos->m_values.size() >= 2) {
                         auto x = atoi(pos->m_values[0].c_str());
@@ -386,7 +496,7 @@ bool events::in::state(gameupdatepacket_t* packet) {
     for (auto& player : players) {
         if (player.netid == packet->m_player_flags) {
             player.pos = vector2_t{ packet->m_vec_x, packet->m_vec_y };
-            PRINTC("player %s position is %.0f %.0f\n", player.name.c_str(), player.pos.m_x, player.pos.m_y);
+            PRINTC("LOCATION: %s => X: %.0f, Y: %.0f\n", player.name.c_str(), player.pos.m_x, player.pos.m_y);
             break;
         }
     }
