@@ -5,6 +5,31 @@
 #include <random>
 #include "proton/variant.hpp"
 
+
+bool utils::hasEnding(std::string const& fullString, std::string const& ending) {
+    if (fullString.length() >= ending.length()) {
+        return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
+    } else {
+        return false;
+    }
+}
+
+std::vector<std::string> utils::splitString(std::string stringToBeSplitted, std::string delimeter) {
+    std::vector<std::string> splittedString;
+    int startIndex = 0;
+    int endIndex = 0;
+    while ((endIndex = stringToBeSplitted.find(delimeter, startIndex)) < stringToBeSplitted.size()) {
+        std::string val = stringToBeSplitted.substr(startIndex, endIndex - startIndex);
+        splittedString.push_back(val);
+        startIndex = endIndex + delimeter.size();
+    }
+    if (startIndex < stringToBeSplitted.size()) {
+        std::string val = stringToBeSplitted.substr(startIndex);
+        splittedString.push_back(val);
+    }
+    return splittedString;
+}
+
 char* utils::get_text(ENetPacket* packet) {
     gametankpacket_t* tank = reinterpret_cast<gametankpacket_t*>(packet->data);
     memset(packet->data + packet->dataLength - 1, 0, 1);
