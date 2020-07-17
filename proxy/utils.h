@@ -22,6 +22,8 @@
 #endif
 
 namespace utils {
+    bool hasEnding(std::string const& fullString, std::string const& ending);
+    std::vector<std::string> splitString(std::string stringToBeSplitted, std::string delimeter);
     char* get_text(ENetPacket* packet);
     gameupdatepacket_t* get_struct(ENetPacket* packet);
     int random(int min, int max);
