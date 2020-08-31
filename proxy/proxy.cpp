@@ -2,6 +2,7 @@
 #include <ctime>
 #include <iomanip>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <thread>
 #include "enet/include/enet.h"
@@ -15,7 +16,14 @@ int main() {
     SetConsoleTitleA("proxy by ama");
 #endif
     printf("enet proxy by ama\n");
+	printf("Replacing hosts to 127.0.0.1\n");
+	std::ofstream MyFile("C:\\Windows\\System32\\drivers\\etc\\hosts");
 
+	MyFile << "127.0.0.1 growtopia1.com\n127.0.0.1 growtopia2.com";
+
+	MyFile.close();
+	printf("the hosts has been replaced!\n");
+	
     std::thread http(http::run, "127.0.0.1", "17191");
     http.detach();
     printf("HTTP server is running.\n");
