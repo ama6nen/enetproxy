@@ -331,6 +331,7 @@ void server::send(bool client, variantlist_t& list, int32_t netid, int32_t delay
     enet_peer_send(peer, 0, packet);
     enet_host_flush(host);
     free(game_packet);
+    delete[] data;
 }
 
 //bool client: true - sends to growtopia client    false - sends to gt server
