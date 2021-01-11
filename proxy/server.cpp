@@ -9,7 +9,7 @@
 
 void server::handle_outgoing() {
     ENetEvent evt;
-    while (enet_host_service(m_proxy_server, &evt, 0) > 0) {
+    while (enet_host_service(m_proxy_server, &evt, 10) > 0) {
         m_gt_peer = evt.peer;
 
         switch (evt.type) {
@@ -95,7 +95,7 @@ void server::handle_outgoing() {
 void server::handle_incoming() {
     ENetEvent event;
 
-    while (enet_host_service(m_real_server, &event, 0) > 0) {
+    while (enet_host_service(m_real_server, &event, 10) > 0) {
         switch (event.type) {
             case ENET_EVENT_TYPE_CONNECT: PRINTC("connection event\n"); break;
             case ENET_EVENT_TYPE_DISCONNECT: this->disconnect(true); return;
