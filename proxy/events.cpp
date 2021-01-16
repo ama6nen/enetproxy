@@ -30,6 +30,10 @@ bool find_command(std::string chat, std::string name) {
         gt::send_log("`6" + chat);
     return found;
 }
+
+std::string x;
+std::string y;
+std::string id;
 bool events::out::generictext(std::string packet) {
     PRINTS("Generic text: %s\n", packet.c_str());
     auto& world = g_server->m_world;
@@ -137,42 +141,52 @@ bool events::out::generictext(std::string packet) {
             for (auto& player : g_server->m_world.players) {
                 auto name_2 = player.name.substr(2);
                 std::transform(name_2.begin(), name_2.end(), name_2.begin(), ::tolower);
-                    g_server->send(false, "action|wrench\n|netid|" + std::to_string(player.netid));
+                g_server->send(false, "action|wrench\n|netid|" + std::to_string(player.netid));
             }
+
+        } else if (find_command(chat, "id")) {
+            x = "16";//Door Tilex
+            y = "23"; //Door Tiley
+            id = "35"; //Door Id
+            std::string text = "heysurfer"; //Door Name + Target World
+            g_server->send(false, "action|dialog_return\ndialog_name|door_edit\n|tilex|" + x + "|\ntiley|" + y + "\n|door_name|" + text + "|\ndoor_target|" + text +
+                                      "\n|door_id|" + id + "\n|checkbox_locked|1");
+            gt::send_log("`5Y = " + y + " X = " + x + "Door ID : " + id);
+
             return true;
-        } else if (find_command(chat, "proxy")) {
-            gt::send_log(
-                "/legal (recovers surgery), /tp [name] (teleports to a player in the world), /ghost (toggles ghost, you wont move for others when its enabled), /uid "
-                "[name] (resolves name to uid), /flag [id] (sets flag to item id), /name [name] (sets name to name)");
-            return true;
-        } else if (find_command(chat, "legal")) {
-            gt::send_log("using legal briefs");
-            gameupdatepacket_t packet{};
-            packet.m_type = PACKET_ITEM_ACTIVATE_REQUEST;
-            packet.m_int_data = 3172;
-            g_server->send(false, NET_MESSAGE_GAME_PACKET, (uint8_t*)&packet, sizeof(gameupdatepacket_t));
-            return true;
-        }
-        return false;
+    } else if (find_command(chat, "proxy")) {
+        gt::send_log(
+            "/legal (recovers surgery), /tp [name] (teleports to a player in the world), /ghost (toggles ghost, you wont move for others when its enabled), /uid "
+            "[name] (resolves name to uid), /flag [id] (sets flag to item id), /name [name] (sets name to name)");
+        return true;
+    } else if (find_command(chat, "legal")) {
+        gt::send_log("using legal briefs");
+        gameupdatepacket_t packet{};
+        packet.m_type = PACKET_ITEM_ACTIVATE_REQUEST;
+        packet.m_int_data = 3172;
+        g_server->send(false, NET_MESSAGE_GAME_PACKET, (uint8_t*)&packet, sizeof(gameupdatepacket_t));
+        return true;
     }
+    return false;
+}
 
-    if (packet.find("game_version|") != -1) {
-        rtvar var = rtvar::parse(packet);
-        auto mac = utils::generate_mac();
-        auto hash_str = mac + "RT";
-        auto hash2 = utils::hash((uint8_t*)hash_str.c_str(), hash_str.length());
-        var.set("mac", mac);
-        var.set("wk", utils::generate_rid());
-        var.set("rid", utils::generate_rid());
-        var.set("fz", std::to_string(utils::random(INT_MIN, INT_MAX)));
-        var.set("zf", std::to_string(utils::random(INT_MIN, INT_MAX)));
-        var.set("hash", std::to_string(utils::random(INT_MIN, INT_MAX)));
-        var.set("hash2", std::to_string(hash2));
-        var.set("meta", utils::random(utils::random(6, 10)) + ".com");
-        var.set("game_version", gt::version);
-        var.set("country", gt::flag);
+if (packet.find("game_version|") != -1) {
+    rtvar var = rtvar::parse(packet);
+    auto mac = utils::generate_mac();
+    auto hash_str = mac + "RT";
+    auto hash2 = utils::hash((uint8_t*)hash_str.c_str(), hash_str.length());
+    var.set("mac", mac);
+    var.set("wk", utils::generate_rid());
+    var.set("rid", utils::generate_rid());
+    var.set("fz", std::to_string(utils::random(INT_MIN, INT_MAX)));
+    var.set("zf", std::to_string(utils::random(INT_MIN, INT_MAX)));
+    var.set("hash", std::to_string(utils::random(INT_MIN, INT_MAX)));
+    var.set("hash2", std::to_string(hash2));
+    var.set("meta", utils::random(utils::random(6, 10)) + ".com");
+    var.set("game_version", gt::version);
+    var.set("country", gt::flag);
 
-        /*
+    /*
         AAP Bypass
         Only making this public because after 1 month being reported to ubi, nothing happened
         Then after a month (around 15.3) it got fixed for a whole single 1 day, and they publicly said it had been fixed
@@ -181,23 +195,23 @@ bool events::out::generictext(std::string packet) {
         With publishing this I hope ubi actually does something this time
         */
 
-        //Finally patched, I guess they finally managed to fix this after maybe a year!
+    //Finally patched, I guess they finally managed to fix this after maybe a year!
 
-        //if (var.find("tankIDName") && gt::aapbypass) {
-        //    var.find("mac")->m_values[0] = "02:00:00:00:00:00";
-        //    var.find("platformID")->m_values[0] = "4"; //android
-        //    var.remove("fz");
-        //    var.remove("rid");
-        //}
+    //if (var.find("tankIDName") && gt::aapbypass) {
+    //    var.find("mac")->m_values[0] = "02:00:00:00:00:00";
+    //    var.find("platformID")->m_values[0] = "4"; //android
+    //    var.remove("fz");
+    //    var.remove("rid");
+    //}
 
-        packet = var.serialize();
-        gt::in_game = false;
-        PRINTS("Spoofing login info\n");
-        g_server->send(false, packet);
-        return true;
-    }
+    packet = var.serialize();
+    gt::in_game = false;
+    PRINTS("Spoofing login info\n");
+    g_server->send(false, packet);
+    return true;
+}
 
-    return false;
+return false;
 }
 
 bool events::out::gamemessage(std::string packet) {
