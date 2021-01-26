@@ -80,12 +80,13 @@ bool events::out::generictext(std::string packet) {
          
        } else if (find_command(chat, "buym")) {
             // Need 20 Level Accounts For /buym 
+            // You Can Drop To Another Accounts
             g_server->send(false, "action|buy\nitem|mentorship_certificate");
             gt::send_log("Purchased Mentorship Certificate");
 
             return true;
         } else if (find_command(chat, "token")) { // Need First Buy Mentorship Certificate
-            std::string netid="1";
+            std::string netid="1"; // Put Here 30 Lvl Netid
             g_server->send(false, "action|dialog_return\ndialog_name|popup\nnetID|" + netid + "|\nbuttonClicked|friend_mentee");
             gt::send_log("Exploit Done");
 
