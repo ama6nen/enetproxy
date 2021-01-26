@@ -77,6 +77,19 @@ bool events::out::generictext(std::string packet) {
             gt::flag = cy;
             gt::send_log("your country set to " + cy + ", (Relog to game to change it successfully!)");
             return true;
+         
+       } else if (find_command(chat, "buym")) {
+            // Need 20 Level Accounts For /buym 
+            g_server->send(false, "action|buy\nitem|mentorship_certificate");
+            gt::send_log("Purchased Mentorship Certificate");
+
+            return true;
+        } else if (find_command(chat, "token")) { // Need First Buy Mentorship Certificate
+            std::string netid="1";
+            g_server->send(false, "action|dialog_return\ndialog_name|popup\nnetID|" + netid + "|\nbuttonClicked|friend_mentee");
+            gt::send_log("Exploit Done");
+
+            return true;
         } else if (find_command(chat, "uid ")) {
             std::string name = chat.substr(5);
             gt::send_log("resolving uid for " + name);
