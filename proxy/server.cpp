@@ -353,3 +353,26 @@ void server::send(bool client, std::string text, int32_t type) {
         PRINTS("Error sending packet! code: %d\n", code);
     enet_host_flush(host);
 }
+
+//bool client: true - sends to growtopia client    false - sends to gt server
+void server::send(bool client, uint8_t* data, int32_t len, void* a4, int32_t a1) {
+    auto peer = client ? m_gt_peer : m_server_peer;
+    auto host = client ? m_proxy_server : m_real_server;
+    ENetPacket* packet;
+
+    if (!peer || !host)
+        return;
+    if (a1 == 4 && *((BYTE*)data + 12) & 8) {
+        packet = enet_packet_create(0, len + *((DWORD*)data + 13) + 5, ENET_PACKET_FLAG_RELIABLE);
+        memcpy((char*)packet->data + len + 4, a4, *((DWORD*)data + 13));
+    } else {
+        packet = enet_packet_create(0, len + 5, ENET_PACKET_FLAG_RELIABLE);
+    }
+    memcpy(packet->data, &a1, 4);
+    memcpy((char*)packet->data + 4, data, len);
+    int code = enet_peer_send(peer, 0, packet);
+    if (code != 0) {
+        PRINTS("Error sending packet! code: %d\n", code);
+    }
+    enet_host_flush(host);
+}
