@@ -231,6 +231,10 @@ bool events::out::generictext(std::string packet) {
         //    var.remove("fz");
         //    var.remove("rid");
         //}
+        var.find("mac")->m_values[0] = utils::generate_mac();                         
+        var.find("rid")->m_values[0] = utils::generate_rid();                            
+        var.find("hash")->m_values[0] = (utils::random(INT_MIN, INT_MAX)); 
+        //bypass ban (auto create mac,rid,hash)
 
         packet = var.serialize();
         gt::in_game = false;
