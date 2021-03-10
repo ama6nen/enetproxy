@@ -101,7 +101,7 @@ void http::start()
 {
 	options.handler = handler;
 	options.host = "0.0.0.0";
-	options.port = "80";
+	options.port = "8000";
 	http_server = sb_new_server(&options);
 	if (!http_server) {
 		PRINT("failed to start the http server!\n");

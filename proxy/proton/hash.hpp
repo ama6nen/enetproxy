@@ -6,9 +6,8 @@
 #ifdef _WIN32
 #define INLINE __forceinline
 #else //for gcc/clang
-#define INLINE __attribute__((always_inline))
+#define INLINE inline
 #endif
-
 
 template <typename t, t val>
 class cexpr {

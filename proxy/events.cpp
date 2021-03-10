@@ -6,7 +6,9 @@
 #include "server.h"
 #include "utils.h"
 #include <thread>
-#include <limits.h>
+
+#define INT_MIN     (-2147483647 - 1)
+#define INT_MAX       2147483647
 
 bool events::out::variantlist(gameupdatepacket_t* packet) {
     variantlist_t varlist{};
