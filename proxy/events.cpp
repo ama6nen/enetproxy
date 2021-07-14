@@ -307,6 +307,10 @@ bool events::in::variantlist(gameupdatepacket_t* packet) {
                     gt::solve_captcha(content);
                     return true;
                 }
+                if (content.find("add_label_with_icon|big|`wThe Growtopia Gazette") != -1) {
+                    g_server->send(false, "action|dialog_return\ndialog_name|gazette");
+                    return true;
+                }
             }
         if (wrench == true) {
             if (content.find("add_button|report_player|`wReport Player``|noflags|0|0|") != -1) {
